@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <mcheck.h>
 
-#include "udputil.h"
-#include "threadutil.h"
-#include "hash.h"
-#include "stack.h"
-#include "client.h"
-#include "msg.h"
+#include "../deps/udputil.h"
+#include "../deps/threadutil.h"
+#include "../deps/hash.h"
+#include "../deps/stack.h"
+#include "../deps/client.h"
+#include "../deps/msg.h"
 
 
 //static int iswork = 0;

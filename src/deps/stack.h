@@ -3,6 +3,8 @@
 
 #define T Stack_T 
 
+#include <stdlib.h>
+
 typedef struct T *T;
 
 extern T Stack_new(void);

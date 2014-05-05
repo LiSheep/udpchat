@@ -2,6 +2,8 @@
 #define HASH_H
 
 #define Hash T
+#include <stdlib.h>
+
 typedef struct T T;
 
 extern void hash_init();
