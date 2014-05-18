@@ -33,14 +33,14 @@ extern int CreateUdpSocket();
 
 extern void Bind(int sockfd, const struct sockaddr_in *addr, socklen_t len);
 
-extern void Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+extern void Connect(int sockfd, const struct sockaddr_in *addr, socklen_t addrlen);
 
 extern void Close(int sockfd);
 
 extern ssize_t Recvfrom(int sockfd, void *msg, size_t length, int flags, struct sockaddr_in *from, socklen_t *addrlen);
 
 extern ssize_t Sendto(int sockfd, const void *msg, size_t length,
-		int flags, const struct sockaddr *to, socklen_t addrlen);
+		int flags, const struct sockaddr_in *to, socklen_t addrlen);
 
 extern void Inet_pton(const char *strptr, void *addrptr);
 

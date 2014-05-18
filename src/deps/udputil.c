@@ -28,8 +28,8 @@ void Bind(int sockfd, const struct sockaddr_in *addr, socklen_t len){
 		err_quit("bind error");
 }
 
-void Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
-	if(connect(sockfd, addr, addrlen) <0 )
+void Connect(int sockfd, const struct sockaddr_in *addr, socklen_t addrlen){
+	if(connect(sockfd, (struct sockaddr*)addr, addrlen) <0 )
 		QUIT("connect error");
 }
 
@@ -47,10 +47,10 @@ ssize_t Recvfrom(int sockfd, void *msg, size_t length, int flags, struct sockadd
 }
 
 ssize_t Sendto(int sockfd, const void *msg, size_t length,
-		int flags, const struct sockaddr *to, socklen_t addrlen)
+		int flags, const struct sockaddr_in *to, socklen_t addrlen)
 {
 	ssize_t res;
-	if((res = sendto(sockfd, msg, length, flags, to, addrlen)) < 0)
+	if((res = sendto(sockfd, msg, length, flags, (struct sockaddr*)to, addrlen)) < 0)
 		err_quit("sendto error");
 	return res;
 }

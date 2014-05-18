@@ -1,0 +1,21 @@
+VPATH = ../deps
+LUAHOME = /usr/local/lua51
+CC = gcc
+OBJECTS = merror.o udputil.o
+
+CFLAGS = -llua -lm -ldl -fPIC -shared -Wall -I$(LUAHOME)/include -L$(LUAHOME)/lib -I../deps
+
+.PHONY : client
+client:myudp.so
+	
+myudp.so:myudp.c $(OBJECTS)
+	$(CC) -o $@ $? $(CFLAGS)
+
+merror.o:merror.c
+	gcc -c $?
+udputil.o:udputil.c 
+	gcc -c $?
+.PHONY : clean
+clean:
+	rm -f *.o *.so
+
