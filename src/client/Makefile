@@ -3,7 +3,7 @@ LUAHOME = /usr/local/lua51
 CC = gcc
 OBJECTS = merror.o udputil.o
 
-CFLAGS = -llua -lm -ldl -fPIC -shared -Wall -I$(LUAHOME)/include -L$(LUAHOME)/lib -I../deps
+CFLAGS = -llua -lm -ldl -fPIC -shared -Wall -L $(LUAHOME)/lib -I $(LUAHOME)/include -I $(VPATH)
 
 .PHONY : client
 client:myudp.so

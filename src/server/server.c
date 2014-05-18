@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <mcheck.h>
 
-#include "../deps/udputil.h"
-#include "../deps/threadutil.h"
-#include "../deps/hash.h"
-#include "../deps/stack.h"
-#include "../deps/client.h"
-#include "../deps/msg.h"
+#include "udputil.h"
+#include "threadutil.h"
+#include "hash.h"
+#include "stack.h"
+#include "client.h"
+#include "msg.h"
 
 
 //static int iswork = 0;
@@ -36,6 +36,7 @@ int main(void){
 		char msg[MSG_BUFF];
 		bzero(msg, MSG_BUFF);
 		Recvfrom(udpfd, msg, MSG_BUFF - SOCK_LEN -1, 0, &cli_addr, &len);
+		Sendto(udpfd, "", 0, 0, &cli_addr, len);
 
 		char sockinfo[SOCK_LEN];
 		//msg+sockinfo
@@ -123,6 +124,7 @@ static inline void handle_msg(char *msg){
 				strcat(buffer, "|");
 			}
 			printf("%s\n", buffer);
+			free(buffer);
 			break;
 	}
 }

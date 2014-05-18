@@ -1,12 +1,10 @@
 VPATH = ../deps
-CFLAGS = -Wall -g -ltalloc -lpthread -I../deps
+CFLAGS = -Wall -ltalloc -lpthread -I../deps -L../deps -g 
 CC = gcc
 OBJECTS = client.o hash.o stack.o udputil.o threadutil.o msg.o merror.o
 
-server:server.o $(OBJECTS)
-	$(CC) -o $@ $? $(CFLAGS)
-server.o:server.c
-	$(CC) -c $? 
+server:server.c $(OBJECTS)
+	$(CC) $^ -o $@ $(CFLAGS) -L$(VPATH) -I$(VPATH)
 
 .PHONY : clean
 clean:

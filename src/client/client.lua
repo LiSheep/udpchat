@@ -2,7 +2,8 @@
 local myudp = require "myudp"
 local wx = require "wx"
 
-local udpserver = ""
+local serverip = "127.0.0.1";
+local serverport = 19560;
 
 local CLIENT_LOGIN = 100;
 local CLIENT_LOGOUT = 101;
@@ -23,9 +24,15 @@ clientMenu = wx.wxMenu{
 	{CLIENT_LOGOUT, "L&ogout", "Logout chatroom"},
 };
 menuBar:Append(clientMenu, "&Server");
-clientMenu:Enable(CLIENT_LOGOUT, false);
-clientMenu:Enable(CLIENT_LOGIN, true);
 frame:SetMenuBar(menuBar);
+function menuChange(login, logout)
+	clientMenu:Enable(CLIENT_LOGOUT, login);
+	clientMenu:Enable(CLIENT_LOGIN, logout);
+end
+
+menuChange(false, true);
+
+
 
 --status bar
 local statusBar = frame:CreateStatusBar(1);
@@ -39,7 +46,7 @@ local txt_send = wx.wxTextCtrl(frame, wx.wxID_ANY, "hello",
 
 --button		
 local btn_send = wx.wxButton(frame, BUTTON_SEND, "send", 
-		wx.wxPoint(330, 305), wx.wxSize(60, 30));
+		wx.wxPoint(330, 315), wx.wxSize(60, 30));
 
 --login dialog
 local mdialog = wx.wxDialog(frame, wx.wxID_ANY, "User Login", 
@@ -64,9 +71,13 @@ mdialog:SetSizerAndFit(mainSizer)
 
 frame:Show(true);
 
+--udp
+local conn_serv = myudp.new();
 
+--frame 
 wx.wxGetApp():MainLoop();
 
+--action
 frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED, 
 	function(event)
 		mdialog:ShowModal();
@@ -82,17 +93,18 @@ frame:Connect(CLIENT_LOGOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
 frame:Connect(BUTTON_SEND, wx.wxEVT_COMMAND_BUTTON_CLICKED, 
 	function(event)
 		local sendStr = txt_send:GetValue();
-
+		
 		txt_send:Clear();
 	end
 );
 
 mdialog:Connect(BUTTON_LOGIN, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 	function(event)
-		wx.wxMessageBox("hel");
-
+		local login = "hello "..txt_name:GetValue();	--send login info
+		conn_serv:sendto(serverip, serverport, login); 
+		conn_serv:recvfrom();
+		frame:SetStatusText("Logined: "..txt_name:GetValue());
+		mdialog:EndModal(0);
 	end
 );
-
-
 

@@ -10,7 +10,7 @@
 #define MSG_GET		1<<1
 #define MSG_BYE		1<<2
 
-extern int msg_gettype(char *msg);
+extern int msg_gettype(const char *msg);
 
 //only effective in MSG_HELLO MSG_BYE
 extern void msg_getclient(char *msg, Client cli);
