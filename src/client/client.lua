@@ -1,6 +1,7 @@
 --package.cpath = ";./?.so;/usr/local/lua51/lib/?.so;/usr/local/lib/lib?.so"
 local myudp = require "myudp"
 local wx = require "wx"
+local cjson  = require"cjson"
 
 local serverip = "127.0.0.1";
 local serverport = 19560;
@@ -9,13 +10,15 @@ local CLIENT_LOGIN = 100;
 local CLIENT_LOGOUT = 101;
 local BUTTON_SEND = 200;
 local BUTTON_LOGIN = 201;
+local BUTTON_REFRESH = 202;
 local TEXT_NAME = 400;
+local LIST_NAME = 500;
 
 local app = wx.wxGetApp();
 app.AppName = "udp chatroom (client)";
 
 local frame = wx.wxFrame(wx.NULL, wx.wxID_ANY, app:GetAppName(), 
-		wx.wxPoint(100,100), wx.wxSize(410, 415),  wx.wxDEFAULT_FRAME_STYLE);
+		wx.wxPoint(100,100), wx.wxSize(560, 415),  wx.wxDEFAULT_FRAME_STYLE);
 
 --menu 		
 local menuBar = wx.wxMenuBar();
@@ -32,8 +35,6 @@ end
 
 menuChange(false, true);
 
-
-
 --status bar
 local statusBar = frame:CreateStatusBar(1);
 frame:SetStatusText("No login");
@@ -47,6 +48,12 @@ local txt_send = wx.wxTextCtrl(frame, wx.wxID_ANY, "hello",
 --button		
 local btn_send = wx.wxButton(frame, BUTTON_SEND, "send", 
 		wx.wxPoint(330, 315), wx.wxSize(60, 30));
+
+local btn_refresh = wx.wxButton(frame, BUTTON_REFRESH, "refresh",
+		wx.wxPoint(410, 315), wx.wxSize(60, 30));
+--listbox
+local choices = {};
+local listName= wx.wxListBox(frame, LIST_NAME, wx.wxPoint(410,0), wx.wxSize(130,300), choices);
 
 --login dialog
 local mdialog = wx.wxDialog(frame, wx.wxID_ANY, "User Login", 
@@ -77,6 +84,15 @@ local conn_serv = myudp.new();
 --frame 
 wx.wxGetApp():MainLoop();
 
+--coroutine
+
+local co = coroutine.create(
+	function()
+		--conn_serv:sendto(serverip, serverport, "hello");
+	end
+);
+coroutine.resume(co);
+
 --action
 frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED, 
 	function(event)
@@ -93,8 +109,29 @@ frame:Connect(CLIENT_LOGOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
 frame:Connect(BUTTON_SEND, wx.wxEVT_COMMAND_BUTTON_CLICKED, 
 	function(event)
 		local sendStr = txt_send:GetValue();
-		
 		txt_send:Clear();
+	end
+);
+
+frame:Connect(BUTTON_REFRESH, wx.wxEVT_COMMAND_BUTTON_CLICKED, 
+	function(event)
+		if not listName:IsEmpty() then
+			listName:Clear();
+		end
+		conn_serv:sendto(serverip, serverport, "get ");
+		local list = conn_serv:recvfrom();
+		choices = {};
+		for _, v in pairs(cjson.decode(list)) do
+			table.insert(choices, v["name"]);
+		end
+		
+		listName:InsertItems(choices, 0);
+	end
+);
+
+frame:Connect(LIST_NAME, wx.wxEVT_COMMAND_LISTBOX_SELECTED,
+	function(event)
+		print(event:GetSelection());
 	end
 );
 
@@ -107,4 +144,5 @@ mdialog:Connect(BUTTON_LOGIN, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		mdialog:EndModal(0);
 	end
 );
+
 

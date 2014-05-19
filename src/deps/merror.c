@@ -8,5 +8,6 @@
 void err_quit(char * str)
 {
 	puts(str);
+	puts(strerror(errno));
 	exit(1);
 }

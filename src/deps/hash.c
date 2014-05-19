@@ -107,10 +107,16 @@ int hash_list(char** key, void** data){
 			return 0;
 		}
 	}
-
 	*key = curr->key;
 	*data = curr->data;
 	curr = curr->next;
+	while(curr == NULL){
+		curr = root[_index++];
+		if(_index == 254){
+			_index = 0;
+			break;
+		}
+	}
 	return 1;
 }
 	

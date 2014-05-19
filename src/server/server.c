@@ -28,15 +28,15 @@ static void *workerthread(void *arg);
 
 static inline void handle_msg(char *msg);
 
+int udpfd = 0;
 int main(void){
-	int udpfd = init();
+	udpfd = init();
 	while(1){	//loop to recv
 		struct sockaddr_in cli_addr;
 		socklen_t len = sizeof(cli_addr);
 		char msg[MSG_BUFF];
 		bzero(msg, MSG_BUFF);
 		Recvfrom(udpfd, msg, MSG_BUFF - SOCK_LEN -1, 0, &cli_addr, &len);
-		Sendto(udpfd, "", 0, 0, &cli_addr, len);
 
 		char sockinfo[SOCK_LEN];
 		//msg+sockinfo
@@ -94,37 +94,63 @@ static void *workerthread(void *arg){
 	return NULL;
 }
 
+static char *buffer = NULL;	//发送报文buffer
 static inline void handle_msg(char *msg){
 	Client client = malloc(sizeof (*client));
 	Client out;
 	char *outKey;
 	int currPeople;		//当前在线人数
 
-	char *buffer;	//发送报文buffer
 	char tmpbuff[CLI_STR_LEN];
 	int type = msg_gettype(msg);
+
+	struct sockaddr_in cliaddr;
+	bzero(&cliaddr, sizeof(cliaddr));
+	int for_i = 0;
+	int sprintf_long = 0;
 	switch(type){
 		case MSG_HELLO:
 			msg_getclient(msg, client);
-			hash_add(client->addr, client, sizeof (*client));
-			break;
-		case MSG_BYE:
-			msg_getclient(msg,client);
-			hash_del(client->addr);
-			break;
-		case MSG_GET:
+			cliaddr.sin_addr.s_addr = client->haddr;
+			cliaddr.sin_port = client->hport;
+			Sendto(udpfd, "", 0, 0, &cliaddr, sizeof(cliaddr));
+			if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
+				return;
+			if(buffer)
+				free(buffer);
+
 			currPeople = hash_count();
 			buffer = malloc(currPeople * CLI_STR_LEN);
 			bzero(buffer, sizeof(buffer));
 
-			while(hash_list(&outKey, (void**)&out)){
+			strcat(buffer, "[");
+			sprintf_long = 1;
+			for(for_i = 0; for_i < currPeople; ++for_i){
+				hash_list(&outKey, (void**)&out);
 				bzero(tmpbuff, sizeof(tmpbuff));
-				client_getSendStr(out, tmpbuff, sizeof(tmpbuff));
-				strncat(buffer, tmpbuff, sizeof(tmpbuff));
-				strcat(buffer, "|");
+				client_tojson(out, tmpbuff, sizeof(tmpbuff));
+				if(for_i == 0){
+					sprintf_long += sprintf(buffer + sprintf_long, "%s", tmpbuff);
+				}else{
+					sprintf_long += sprintf(buffer+sprintf_long, ",%s", tmpbuff);
+				}
+				if(for_i == currPeople - 1){
+					strcat(buffer+sprintf_long, "]");
+				}
 			}
-			printf("%s\n", buffer);
-			free(buffer);
+			break;
+		case MSG_BYE:
+			msg_getclient(msg, client);
+			cliaddr.sin_addr.s_addr = client->haddr;
+			cliaddr.sin_port = client->hport;
+			Sendto(udpfd, "", 0, 0, &cliaddr, sizeof(cliaddr));
+			hash_del(client->addr);
+			break;
+		case MSG_GET:
+			msg_getclient(msg, client);
+			cliaddr.sin_addr.s_addr = client->haddr;
+			cliaddr.sin_port = client->hport;
+			Sendto(udpfd, buffer, strlen(buffer), 0, &cliaddr, sizeof(cliaddr));
 			break;
 	}
 }

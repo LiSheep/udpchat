@@ -34,12 +34,15 @@ void msg_getclient(char *msg, Client cli){
 	assert(msg);
 	char *data = strsep(&msg, ",");
 	unsigned int addr = atoi(strsep(&msg, ","));
+	cli->haddr = addr;
 	Inet_ntop(&addr, cli->addr, ADDR_LEN);
-
-	cli->port = ntohs(atoi(strsep(&msg, ",")));
+	cli->hport = atoi(strsep(&msg, ","));
+	cli->port = ntohs(cli->hport);
 
 	strsep(&data, " ");
 	char *name_tmp = strsep(&data, " ");
 	char *name = strsep(&name_tmp, "\n");
 	strcpy(cli->name, name);
 }
+
+

@@ -1,3 +1,4 @@
+all:server client
 server:
 	cd src/server && $(MAKE) $@
 client:

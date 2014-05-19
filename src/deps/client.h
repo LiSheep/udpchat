@@ -11,24 +11,26 @@
 #define ADDR_LEN 20
 #define NAME_LEN 28
 
-#define CLI_STR_LEN (30 + ADDR_LEN + NAME_LEN)
+#define CLI_STR_LEN (50 + ADDR_LEN + NAME_LEN)
 
 typedef struct T *T;
 
 struct T{
 	uint32_t id;
 	int port;
+	uint32_t haddr;
+	uint32_t hport;
 	char addr[ADDR_LEN];
 	char name[NAME_LEN];
 	struct timeval activeTime;
 };
 
 
-//将Client转换成str字符串
-extern void client_getSendStr(T cli, char* str, size_t len);
+//将1个Client转换成json字符串
+extern void client_tojson(T client, char* str, size_t len);
 
-//将str字符串转换成Client str: id,addr,port,name
-extern void client_transStr(char *str, T cli);
+//将json字符串转换成Client 
+extern void client_toobj(char *str, T cli);
 
 //通过key：ip,port获取Client
 extern void client_getClient(char *key, T cli);
