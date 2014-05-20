@@ -54,6 +54,8 @@ static int udpbind(lua_State *L){
 	servaddr.sin_port=htons(port);
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	set_reuse(conn->fd);
+
 	Bind(conn->fd, &servaddr, sizeof(servaddr));
 	return 0;
 }
@@ -82,7 +84,7 @@ static const struct luaL_Reg libs_f[]= {
 
 static const struct luaL_Reg libs_m[] = {
 	{"sendto", udpsendto},
-	{"listen", udpbind},
+	{"bind", udpbind},
 	{"recvfrom", udprecvfrom},
 	{NULL, NULL}
 };

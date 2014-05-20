@@ -2,9 +2,11 @@
 local myudp = require "myudp"
 local wx = require "wx"
 local cjson  = require"cjson"
+local thread = require "thread"
 
-local serverip = "127.0.0.1";
+local serverip = "115.28.83.115";
 local serverport = 19560;
+local clientport = 10000;
 
 local CLIENT_LOGIN = 100;
 local CLIENT_LOGOUT = 101;
@@ -13,6 +15,11 @@ local BUTTON_LOGIN = 201;
 local BUTTON_REFRESH = 202;
 local TEXT_NAME = 400;
 local LIST_NAME = 500;
+
+local userinfo = {};
+
+local chat_addr;
+local chat_port;
 
 local app = wx.wxGetApp();
 app.AppName = "udp chatroom (client)";
@@ -80,18 +87,12 @@ frame:Show(true);
 
 --udp
 local conn_serv = myudp.new();
+conn_serv:bind(serverport);
 
 --frame 
 wx.wxGetApp():MainLoop();
 
 --coroutine
-
-local co = coroutine.create(
-	function()
-		--conn_serv:sendto(serverip, serverport, "hello");
-	end
-);
-coroutine.resume(co);
 
 --action
 frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED, 
@@ -102,14 +103,21 @@ frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED,
 
 frame:Connect(CLIENT_LOGOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
 	function(event)
-		wx.wxMessageBox("asd");
+		conn_serv:sendto(serverip, serverport, "bye ");
 	end
 );
 
+local conn_cli = myudp.new();
+conn_cli:bind(clientport);
 frame:Connect(BUTTON_SEND, wx.wxEVT_COMMAND_BUTTON_CLICKED, 
 	function(event)
 		local sendStr = txt_send:GetValue();
-		txt_send:Clear();
+		if chat_addr ~= nil then
+			conn_cli:sendto(chat_addr, chat_port, sendStr);
+			txt_send:Clear();
+		else
+			wx.wxMessageBox("choice one to send");
+		end
 	end
 );
 
@@ -121,17 +129,26 @@ frame:Connect(BUTTON_REFRESH, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		conn_serv:sendto(serverip, serverport, "get ");
 		local list = conn_serv:recvfrom();
 		choices = {};
-		for _, v in pairs(cjson.decode(list)) do
+		userinfo = cjson.decode(list)
+		for _, v in pairs(userinfo) do
 			table.insert(choices, v["name"]);
 		end
-		
 		listName:InsertItems(choices, 0);
 	end
 );
 
 frame:Connect(LIST_NAME, wx.wxEVT_COMMAND_LISTBOX_SELECTED,
 	function(event)
-		print(event:GetSelection());
+		local select_index = event:GetSelection();
+		local curr_index = 0;
+		for _, v in pairs(userinfo) do
+			if select_index == curr_index then
+				chat_addr = v["addr"];
+				chat_port = v["port"];
+				break;
+			end
+			curr_index = curr_index + 1;
+		end
 	end
 );
 
@@ -145,4 +162,13 @@ mdialog:Connect(BUTTON_LOGIN, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 	end
 );
 
+function recv()
+	a = 1;
+	while a do
+		print("begin");
+		print(conn_cli:recvfrom());
+	end
+end
 
+local recv_thread = thread.create(recv);
+recv_thread:resume();

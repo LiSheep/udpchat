@@ -10,7 +10,7 @@ client:myudp.so
 	
 myudp.so:myudp.c $(OBJECTS)
 	$(CC) -o $@ $? $(CFLAGS)
-	cp ../deps/cjson.so .
+	cp $(VPATH)/cjson.so $(VPATH)/thread.so .
 
 merror.o:merror.c
 	gcc -c $?
