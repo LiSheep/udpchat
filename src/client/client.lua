@@ -5,8 +5,8 @@ local cjson  = require"cjson"
 local thread = require "thread"
 
 local serverip = "115.28.83.115";
+--local serverip = "222.26.224.56";
 local serverport = 19560;
-local clientport = 10000;
 
 local CLIENT_LOGIN = 100;
 local CLIENT_LOGOUT = 101;
@@ -17,6 +17,7 @@ local TEXT_NAME = 400;
 local LIST_NAME = 500;
 
 local userinfo = {};
+local myname = "";
 
 local chat_addr;
 local chat_port;
@@ -35,6 +36,7 @@ clientMenu = wx.wxMenu{
 };
 menuBar:Append(clientMenu, "&Server");
 frame:SetMenuBar(menuBar);
+
 function menuChange(login, logout)
 	clientMenu:Enable(CLIENT_LOGOUT, login);
 	clientMenu:Enable(CLIENT_LOGIN, logout);
@@ -47,7 +49,7 @@ local statusBar = frame:CreateStatusBar(1);
 frame:SetStatusText("No login");
 
 --text box
-local txt_recv = wx.wxTextCtrl(frame, wx.wxID_ANY, "Welcome to udp chatroom", 
+local txt_recv = wx.wxTextCtrl(frame, wx.wxID_ANY, "", 
 		wx.wxPoint(2, 0), wx.wxSize(400, 200), wx.wxTE_MULTILINE + wx.wxTE_READONLY);
 local txt_send = wx.wxTextCtrl(frame, wx.wxID_ANY, "hello", 
 		wx.wxPoint(2,200), wx.wxSize(400, 100), wx.wxTE_MULTILINE);
@@ -82,17 +84,43 @@ mainSizer:Add(staticBoxSizer, 0, wx.wxALL, 5)
 mainSizer:Add(buttonSizer, 0, wx.wxALIGN_CENTER+wx.wxALL, 5 )    
 mdialog:SetSizerAndFit(mainSizer)
 
-
+--frame 
 frame:Show(true);
 
 --udp
-local conn_serv = myudp.new();
-conn_serv:bind(serverport);
+local conn = myudp.new();
+conn:bind(19999); --just test
+--recv data deal
+function deal_ser(data)
+	choices = {};
+	userinfo = cjson.decode(data)
+	for _, v in pairs(userinfo) do
+		table.insert(choices, v["name"]);
+	end
+	listName:InsertItems(choices, 0);
+end
 
---frame 
-wx.wxGetApp():MainLoop();
+function deal_cli(data)
+	txt_recv:AppendText(data.."\n");
+end
 
---coroutine
+--thread
+function recv()
+	a = 1;
+	while a do
+		print("begin");
+		local recvstr = conn:recvfrom();
+		local recvtype = string.sub(recvstr, 0, 3);
+		if recvtype == "ser" then
+			deal_ser(string.sub(recvstr, 4));
+		else
+			print("from client: ");
+			deal_cli(recvstr);
+		end
+	end
+end
+
+local recv_thread = thread.create(recv);
 
 --action
 frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED, 
@@ -103,17 +131,16 @@ frame:Connect(CLIENT_LOGIN, wx.wxEVT_COMMAND_MENU_SELECTED,
 
 frame:Connect(CLIENT_LOGOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
 	function(event)
-		conn_serv:sendto(serverip, serverport, "bye ");
+		conn:sendto(serverip, serverport, "bye ");
 	end
 );
 
-local conn_cli = myudp.new();
-conn_cli:bind(clientport);
 frame:Connect(BUTTON_SEND, wx.wxEVT_COMMAND_BUTTON_CLICKED, 
 	function(event)
 		local sendStr = txt_send:GetValue();
 		if chat_addr ~= nil then
-			conn_cli:sendto(chat_addr, chat_port, sendStr);
+			txt_recv:AppendText("me: "..sendStr.."\n");
+			conn:sendto(serverip, serverport, myname..": "..sendStr);
 			txt_send:Clear();
 		else
 			wx.wxMessageBox("choice one to send");
@@ -126,14 +153,7 @@ frame:Connect(BUTTON_REFRESH, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		if not listName:IsEmpty() then
 			listName:Clear();
 		end
-		conn_serv:sendto(serverip, serverport, "get ");
-		local list = conn_serv:recvfrom();
-		choices = {};
-		userinfo = cjson.decode(list)
-		for _, v in pairs(userinfo) do
-			table.insert(choices, v["name"]);
-		end
-		listName:InsertItems(choices, 0);
+		conn:sendto(serverip, serverport, "get ");
 	end
 );
 
@@ -155,20 +175,16 @@ frame:Connect(LIST_NAME, wx.wxEVT_COMMAND_LISTBOX_SELECTED,
 mdialog:Connect(BUTTON_LOGIN, wx.wxEVT_COMMAND_BUTTON_CLICKED,
 	function(event)
 		local login = "hello "..txt_name:GetValue();	--send login info
-		conn_serv:sendto(serverip, serverport, login); 
-		conn_serv:recvfrom();
-		frame:SetStatusText("Logined: "..txt_name:GetValue());
+		conn:sendto(serverip, serverport, login); 
+		conn:recvfrom();
+
+		--start thread
+		recv_thread:resume();
+		myname = txt_name:GetValue()
+		frame:SetStatusText("Logined: "..myname);
 		mdialog:EndModal(0);
 	end
 );
 
-function recv()
-	a = 1;
-	while a do
-		print("begin");
-		print(conn_cli:recvfrom());
-	end
-end
 
-local recv_thread = thread.create(recv);
-recv_thread:resume();
+wx.wxGetApp():MainLoop();

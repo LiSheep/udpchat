@@ -123,8 +123,8 @@ static inline void handle_msg(char *msg){
 			buffer = malloc(currPeople * CLI_STR_LEN);
 			bzero(buffer, sizeof(buffer));
 
-			strcat(buffer, "[");
-			sprintf_long = 1;
+			strcat(buffer, "ser[");
+			sprintf_long = 4;
 			for(for_i = 0; for_i < currPeople; ++for_i){
 				hash_list(&outKey, (void**)&out);
 				bzero(tmpbuff, sizeof(tmpbuff));
@@ -150,7 +150,8 @@ static inline void handle_msg(char *msg){
 			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-			Sendto(udpfd, buffer, strlen(buffer), 0, &cliaddr, sizeof(cliaddr));
+			if(buffer != NULL)
+				Sendto(udpfd, buffer, strlen(buffer), 0, &cliaddr, sizeof(cliaddr));
 			break;
 	}
 }
