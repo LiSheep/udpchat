@@ -4,6 +4,7 @@
 #include <talloc.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "hash.h"
 
@@ -32,16 +33,17 @@ static TALLOC_CTX* pool;
 
 static T *hash_get(const char *key);
 
-//ip:127.0.0.1.1000
+//ip:127.0.0.1
 static int getELEM(const char* ip){
+int a = strlen(ip);
 	char *tmp = malloc(strlen(ip));
+	char *ptmp = tmp;
 	memcpy(tmp, ip, strlen(ip));
-	strsep(&tmp, ".");//127
+	puts(strsep(&tmp, "."));//127
 	strsep(&tmp, ".");//0
-	strsep(&tmp, ".");//0
+	puts(strsep(&tmp, "."));//0
 	int ret = atoi(strsep(&tmp, "."));//1
-	strsep(&tmp, ".");//port
-	free(tmp);
+	free(ptmp);
 	return ret;
 }
 
