@@ -35,13 +35,12 @@ static T *hash_get(const char *key);
 
 //ip:127.0.0.1
 static int getELEM(const char* ip){
-int a = strlen(ip);
-	char *tmp = malloc(strlen(ip));
+	char *tmp = malloc(strlen(ip) + 1);
 	char *ptmp = tmp;
-	memcpy(tmp, ip, strlen(ip));
-	puts(strsep(&tmp, "."));//127
+	strncpy(tmp, ip, strlen(ip) + 1);
+	strsep(&tmp, ".");//127
 	strsep(&tmp, ".");//0
-	puts(strsep(&tmp, "."));//0
+	strsep(&tmp, ".");//0
 	int ret = atoi(strsep(&tmp, "."));//1
 	free(ptmp);
 	return ret;
