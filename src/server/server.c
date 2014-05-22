@@ -108,12 +108,17 @@ static inline void handle_msg(char *msg){
 	bzero(&cliaddr, sizeof(cliaddr));
 	int for_i = 0;
 	int sprintf_long = 0;
+
+	char sendmsg[NAME_LEN+strlen("ser{type=\"hello\", name=\"\"}")]; 	//ser{type="hello", name="name"}
 	switch(type){
 		case MSG_HELLO:
 			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-			Sendto(udpfd, "", 0, 0, &cliaddr, sizeof(cliaddr));
+
+			bzero(sendmsg, sizeof(sendmsg));
+			snprintf(sendmsg, sizeof(sendmsg), "ser{type=\"hello\", name=\"%s\"}", client->name);
+			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
 				return;
 			if(buffer)
@@ -143,7 +148,9 @@ static inline void handle_msg(char *msg){
 			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-			Sendto(udpfd, "", 0, 0, &cliaddr, sizeof(cliaddr));
+			bzero(sendmsg, sizeof(sendmsg));
+			snprintf(sendmsg, sizeof(sendmsg), "ser{type=\"bye\"}");
+			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			hash_del(client->addr);
 			break;
 		case MSG_GET:
