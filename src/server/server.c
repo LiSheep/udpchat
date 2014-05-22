@@ -109,7 +109,7 @@ static inline void handle_msg(char *msg){
 	int for_i = 0;
 	int sprintf_long = 0;
 
-	char sendmsg[NAME_LEN+strlen("ser{type=\"hello\", name=\"\"}")]; 	//ser{type="hello", name="name"}
+	char sendmsg[NAME_LEN+strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
 	switch(type){
 		case MSG_HELLO:
 			msg_getclient(msg, client);
@@ -117,7 +117,7 @@ static inline void handle_msg(char *msg){
 			cliaddr.sin_port = client->hport;
 
 			bzero(sendmsg, sizeof(sendmsg));
-			snprintf(sendmsg, sizeof(sendmsg), "ser{type=\"hello\", name=\"%s\"}", client->name);
+			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"hello\", \"name\":\"%s\"}", client->name);
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
 				return;
@@ -128,8 +128,8 @@ static inline void handle_msg(char *msg){
 			buffer = malloc(currPeople * CLI_STR_LEN);
 			bzero(buffer, sizeof(buffer));
 
-			strcat(buffer, "ser[");
-			sprintf_long = 4;
+			strcat(buffer, "ser{\"type\":\"get\", \"data\":[");
+			sprintf_long = strlen("ser{\"type\":\"get\", \"data\":[");
 			for(for_i = 0; for_i < currPeople; ++for_i){
 				hash_list(&outKey, (void**)&out);
 				bzero(tmpbuff, sizeof(tmpbuff));
@@ -140,7 +140,7 @@ static inline void handle_msg(char *msg){
 					sprintf_long += sprintf(buffer+sprintf_long, ",%s", tmpbuff);
 				}
 				if(for_i == currPeople - 1){
-					strcat(buffer+sprintf_long, "]");
+					strcat(buffer+sprintf_long, "]}");
 				}
 			}
 			break;
@@ -149,7 +149,7 @@ static inline void handle_msg(char *msg){
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
 			bzero(sendmsg, sizeof(sendmsg));
-			snprintf(sendmsg, sizeof(sendmsg), "ser{type=\"bye\"}");
+			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"bye\"}");
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			hash_del(client->addr);
 			break;
