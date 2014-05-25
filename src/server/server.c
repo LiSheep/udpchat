@@ -20,6 +20,8 @@ pthread_cond_t pcond;
 
 Stack_T msg_stack;
 
+Hash *hash;
+
 static inline int init();
 
 static inline void dispose();
@@ -27,6 +29,8 @@ static inline void dispose();
 static void *workerthread(void *arg);
 
 static inline void handle_msg(char *msg);
+
+static inline void build_getmsg(char *msg);
 
 int udpfd = 0;
 int main(void){
@@ -62,7 +66,8 @@ static inline int init(){
 
 	Bind(udpfd, &serv_addr, sizeof(serv_addr));
 
-	hash_init();
+	//hash_init();
+	hash = hash_create();
 	msg_stack = Stack_new();
 
 	//start worker thread
@@ -97,17 +102,11 @@ static void *workerthread(void *arg){
 static char *buffer = NULL;	//发送报文buffer
 static inline void handle_msg(char *msg){
 	Client client = malloc(sizeof (*client));
-	Client out;
-	char *outKey;
 	int currPeople;		//当前在线人数
-
-	char tmpbuff[CLI_STR_LEN];
 	int type = msg_gettype(msg);
 
 	struct sockaddr_in cliaddr;
 	bzero(&cliaddr, sizeof(cliaddr));
-	int for_i = 0;
-	int sprintf_long = 0;
 
 	char sendmsg[NAME_LEN+strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
 	switch(type){
@@ -119,30 +118,15 @@ static inline void handle_msg(char *msg){
 			bzero(sendmsg, sizeof(sendmsg));
 			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"hello\", \"name\":\"%s\"}", client->name);
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
-			if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
+			//if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
+			if(!hash_add(hash, client->addr, client, sizeof (*client))) //该用户已上线
 				return;
 			if(buffer)
 				free(buffer);
 
-			currPeople = hash_count();
+			currPeople = hash_count(hash);
 			buffer = malloc(currPeople * CLI_STR_LEN);
-			bzero(buffer, sizeof(buffer));
-
-			strcat(buffer, "ser{\"type\":\"get\", \"data\":[");
-			sprintf_long = strlen("ser{\"type\":\"get\", \"data\":[");
-			for(for_i = 0; for_i < currPeople; ++for_i){
-				hash_list(&outKey, (void**)&out);
-				bzero(tmpbuff, sizeof(tmpbuff));
-				client_tojson(out, tmpbuff, sizeof(tmpbuff));
-				if(for_i == 0){
-					sprintf_long += sprintf(buffer + sprintf_long, "%s", tmpbuff);
-				}else{
-					sprintf_long += sprintf(buffer+sprintf_long, ",%s", tmpbuff);
-				}
-				if(for_i == currPeople - 1){
-					strcat(buffer+sprintf_long, "]}");
-				}
-			}
+			build_getmsg(buffer);
 			break;
 		case MSG_BYE:
 			msg_getclient(msg, client);
@@ -151,7 +135,9 @@ static inline void handle_msg(char *msg){
 			bzero(sendmsg, sizeof(sendmsg));
 			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"bye\"}");
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
-			hash_del(client->addr);
+			//hash_del(client->addr);
+			hash_del(hash, client->addr);
+			build_getmsg(buffer);
 			break;
 		case MSG_GET:
 			msg_getclient(msg, client);
@@ -163,4 +149,29 @@ static inline void handle_msg(char *msg){
 	}
 }
 
+static void build_getmsg(char *buffer){
+	bzero(buffer, sizeof(buffer));
+	char tmpbuff[CLI_STR_LEN];
+	int sprintf_long = 0;
+	int currPeople = hash_count(hash);
+	int for_i = 0;
+	Client out;
+	char *outKey;
+	strcat(buffer, "ser{\"type\":\"get\", \"data\":[");
+	sprintf_long = strlen("ser{\"type\":\"get\", \"data\":[");
 
+	hash_begin(hash);
+	for(for_i = 0; for_i < currPeople && hash_next(hash, &outKey, (void**)&out); ++for_i){
+		//hash_list(&outKey, (void**)&out);
+		bzero(tmpbuff, sizeof(tmpbuff));
+		client_tojson(out, tmpbuff, sizeof(tmpbuff));
+		if(for_i == 0){
+			sprintf_long += sprintf(buffer + sprintf_long, "%s", tmpbuff);
+		}else{
+			sprintf_long += sprintf(buffer+sprintf_long, ",%s", tmpbuff);
+		}
+		if(for_i == currPeople - 1){
+			strcat(buffer+sprintf_long, "]}");
+		}
+	}
+}

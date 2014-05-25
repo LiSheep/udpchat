@@ -1,40 +1,35 @@
-#ifndef HASH_H
-#define HASH_H
+#include "hash.h"
+
 #include <stdlib.h>
 #include <talloc.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
 
-#include "hash.h"
+#ifdef T
+#undef T
+#endif
 
-#define T Hash 
-
-#define HASH_TABLE_LEN 254
-#define NEW(p) p = talloc_zero(pool, T) 
-#define NEW_STR(str) talloc_strdup(pool, str)
-#define NEW_OBJ(obj, size) talloc_memdup(pool, obj, size)
-#define FREE(p) talloc_free_children(p);
-
-
-static int _count;
-
-typedef struct T T;
-
-struct T{
+#define T Hash
+#define NEW(size) talloc_zero_size(pool, size)
+#define NEW_STR(ctx, str) talloc_strdup(ctx, str)
+#define NEW_OBJ(ctx, size) talloc_zero_size(ctx, size)
+#define FREE(ctx, p) talloc_unlink(p, ctx); talloc_free(p)
+typedef struct listNode{
 	char *key;
+	struct listNode *next;
 	void *data;
-	T *next;
-	T *prev;
+}listNode;
+
+struct T{	//alloc the talloc in pool
+	int count;	//count the hash
+	listNode *head[HASH_TABLE_LEN + 1];
 };
 
-static T *root[HASH_TABLE_LEN];
-static TALLOC_CTX* pool;
 
-static T *hash_get(const char *key);
+static TALLOC_CTX *pool;	//the talloc pool, only release when hash not needed anymore
 
-//ip:127.0.0.1
-static int getELEM(const char* ip){
+int getIndex(const char *ip){ 
 	char *tmp = malloc(strlen(ip) + 1);
 	char *ptmp = tmp;
 	strncpy(tmp, ip, strlen(ip) + 1);
@@ -46,93 +41,121 @@ static int getELEM(const char* ip){
 	return ret;
 }
 
-void hash_init(){
-	assert(!pool);
-	pool = talloc_pool(NULL, 10 * sizeof(T));
+T *hash_create(){
+	if(pool == NULL)
+		pool = talloc_pool(NULL, HASH_TABLE_LEN* 10* sizeof(T));
 	assert(pool);
+	T *t = NEW(sizeof(T));
+	for(int i = 0; i < HASH_TABLE_LEN + 1; ++i)
+		t->head[i] = NEW_OBJ(t, sizeof(listNode));
+	return t;
 }
 
-int hash_add(const char *key, void* data, size_t data_size){
+//return: 1 success; 0 falied
+int hash_add(T *hash, const char *key, void* data, size_t data_size){
 	assert(pool);
+	assert(hash);
 	assert(*key);
-	T *p;
-	if((p = hash_get(key)) != NULL)
+
+	int h = getIndex(key);
+	if(hash_getdata(hash, key) != NULL)
 		return 0;
+	
+	listNode *newnode;
+	newnode = NEW_OBJ(hash, sizeof(listNode));
+	newnode->key = NEW_STR(newnode, key);
+	newnode->data = NEW_OBJ(newnode, data_size);
+	memcpy(newnode->data, data, data_size);
 
-	++_count;
-	unsigned int h = getELEM(key);
-	NEW(p);
-	p->key = NEW_STR(key);
-	p->data = NEW_OBJ(data, data_size);
+	newnode->next = hash->head[h]->next;
+	hash->head[h]->next = newnode;
 
-	p->next = root[h];
-	if(root[h] != NULL){
-		root[h]->prev = p;
-	}
-	p->prev = NULL;
-	root[h] = p;
+	++hash->count;
 	return 1;
 }
 
-static T *hash_get(const char* key){
-	assert(*key);
-	unsigned int h = getELEM(key);
-	T *p;
-	for(p = root[h]; p; p = p->next){
-		if(!strcmp(key, p->key)){	//same one
-			return p;
-		}
-	}
-	return NULL;
-}
-
-void *hash_getdata(const char* key){
-	T *p = hash_get(key);
-	if(!p)
-		return NULL;
-	else
-		return p->data;
-}
-
-static T *curr = NULL;
-static int _index = 0;
-int hash_list(char** key, void** data){
-	assert(data);
+//return: NULL if not find
+void *hash_getdata(T *hash, const char *key){
+	assert(pool);
+	assert(hash);
 	assert(key);
-	while(curr == NULL){
-		curr = root[_index++];
-		if(_index == 254){
-			*key = NULL;
-			*data = NULL;
-			_index = 0;
-			return 0;
-		}
-	}
-	*key = curr->key;
-	*data = curr->data;
-	curr = curr->next;
-	while(curr == NULL){
-		curr = root[_index++];
-		if(_index == 254){
-			_index = 0;
+	int h = getIndex(key);
+	listNode *currNode = hash->head[h]->next;
+
+	for(; currNode != NULL && strcmp(currNode->key, key); currNode = currNode->next)
+		continue;
+	if(currNode == NULL)
+		return NULL;
+	else 
+		return currNode->data;
+}
+
+static listNode *hash_getnode(T *hash, const char *key){
+	assert(pool);
+	assert(hash);
+	assert(key);
+	int h = getIndex(key);
+	listNode *currNode = hash->head[h];
+	if(currNode == NULL)
+		return NULL;
+	for(; currNode != NULL && strcmp(currNode->key, key); currNode = currNode->next)
+		continue;
+	return currNode;
+}
+
+void hash_del(T *hash, const char *key){
+	assert(pool);
+	assert(hash);
+	assert(key);
+
+	listNode *prev;
+	listNode *curr;
+
+	int h = getIndex(key);
+	for(prev = hash->head[h], curr = prev->next; curr; 
+			prev=curr, curr = curr->next){
+		
+		if(strcmp(curr->key, key) == 0){
+			prev->next = curr->next;
+			FREE(hash, curr);
+			--hash->count;
 			break;
 		}
 	}
-	return 1;
-}
-	
-void hash_del(const char* key){
-	T *p = hash_get(key);
-	assert(p);
-	if(p->prev != NULL){	//not first one
-		p->prev->next= p->next;
-	}
-	--_count;
-	FREE(p);
 }
 
-int hash_count(){
-	return _count;
+static int _index = 0;
+static listNode *nextNode;
+
+void hash_begin(T *hash){
+	_index = 0;
+	nextNode = hash->head[_index]->next;
+}
+
+//遍历hash return 1 has next, return 0 no next
+int hash_next(T* hash, char **pkey, void **pdata){
+	assert(hash);
+	if(NULL == nextNode && HASH_TABLE_LEN == _index){
+		return 0;
+	}
+	if(nextNode == NULL){
+		++_index;
+		nextNode = hash->head[_index]->next;
+		return hash_next(hash, pkey, pdata);
+	}else{
+		*pkey = nextNode->key;
+		*pdata = nextNode->data;
+		nextNode = nextNode->next;
+		return 1;
+	}
+}
+
+int hash_count(T *hash){
+	return hash->count;
+}
+
+void hash_release(T *hash){
+	FREE(pool, hash);
 }
 
 void hash_dispose(){
@@ -140,4 +163,3 @@ void hash_dispose(){
 }
 
 #undef T
-#endif
