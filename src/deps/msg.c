@@ -11,19 +11,12 @@
 
 int msg_gettype(const char *msg){
 	assert(msg);
-	char* tmp = strdup(msg);
-	char* ptmp = tmp;
-	char* type = strsep(&tmp, " ");
-	if(strcmp(type, "hello") == 0){
-		free(ptmp);
+
+	if(0 == strncmp(msg, "hello", 5)) {
 		return MSG_HELLO;
-	}
-	if(strcmp(type, "bye") == 0){
-		free(ptmp);
+	} else if(0 == strncmp(msg, "bye", 3)) {
 		return MSG_BYE;	
-	}
-	if(strcmp(type, "get") == 0){
-		free(ptmp);
+	} else if(0 == strncmp(msg, "get", 3)) {
 		return MSG_GET;
 	}
 	return MSG_NONE;
@@ -32,17 +25,23 @@ int msg_gettype(const char *msg){
 //"ltc\n,16777343,36550" -> data,ip,port
 void msg_getclient(char *msg, Client cli){
 	assert(msg);
-	char *data = strsep(&msg, ",");
-	unsigned int addr = atoi(strsep(&msg, ","));
-	cli->haddr = addr;
-	Inet_ntop(&addr, cli->addr, ADDR_LEN);
-	cli->hport = atoi(strsep(&msg, ","));
-	cli->port = ntohs(cli->hport);
 
-	strsep(&data, " ");
-	char *name_tmp = strsep(&data, " ");
-	char *name = strsep(&name_tmp, "\n");
-	strcpy(cli->name, name);
+	int i = 0;
+	while(msg[i] != ',') {
+		cli->name[i] = msg[i];
+		i++;
+	}
+	cli->name[i] = '\0';
+	i++;
+	cli->haddr = atoi(msg+i);
+	Inet_ntop(&cli->haddr, cli->addr, ADDR_LEN);
+
+	while(msg[i] != ',') {
+		i++;
+	}
+	i++;
+	cli->hport = atoi(msg+i);
+	cli->port = ntohs(cli->hport);
 }
 
 

@@ -24,7 +24,7 @@ Hash *hash;
 
 static inline int init();
 
-static inline void dispose();
+static inline void dispose(int signo);
 
 static void *workerthread(void *arg);
 
@@ -40,12 +40,13 @@ int main(void){
 		socklen_t len = sizeof(cli_addr);
 		char msg[MSG_BUFF];
 		bzero(msg, MSG_BUFF);
-		Recvfrom(udpfd, msg, MSG_BUFF - SOCK_LEN -1, 0, &cli_addr, &len);
+		Recvfrom(udpfd, msg, MSG_BUFF - SOCK_LEN, 0, &cli_addr, &len);
 
 		char sockinfo[SOCK_LEN];
 		//msg+sockinfo
 		sprintf(sockinfo, ",%u,%u", (unsigned int)cli_addr.sin_addr.s_addr,(unsigned int)cli_addr.sin_port);
-		strncat(msg, sockinfo, strlen(sockinfo));
+		//strncat(msg, sockinfo, strlen(sockinfo)+1);
+		strcat(msg, sockinfo);
 
 		Pthread_mutex_lock(&pmutex);
 		Stack_push(msg_stack, msg, strlen(msg));
@@ -65,11 +66,13 @@ static inline int init(){
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	Bind(udpfd, &serv_addr, sizeof(serv_addr));
+	
 
 	//hash_init();
 	hash = hash_create();
 	msg_stack = Stack_new();
 
+	signal(SIGINT, dispose);
 	//start worker thread
 	Pthread_create(&worker, workerthread, NULL);
 	Pthread_mutex_init(&pmutex);
@@ -78,7 +81,8 @@ static inline int init(){
 	return udpfd;
 }
 
-static inline void dispose(){
+static inline void dispose(int signo){
+	printf("server stoping...");
 	hash_dispose();
 	Pthread_mutex_destroy(&pmutex);
 	Pthread_cond_destrory(&pcond);
@@ -170,8 +174,6 @@ static void build_getmsg(char *buffer){
 		}else{
 			sprintf_long += sprintf(buffer+sprintf_long, ",%s", tmpbuff);
 		}
-		if(for_i == currPeople - 1){
-			strcat(buffer+sprintf_long, "]}");
-		}
 	}
+	strcat(buffer+sprintf_long, "]}");
 }
