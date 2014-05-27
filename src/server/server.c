@@ -39,14 +39,16 @@ int main(void){
 		struct sockaddr_in cli_addr;
 		socklen_t len = sizeof(cli_addr);
 		char msg[MSG_BUFF];
-		bzero(msg, MSG_BUFF);
-		Recvfrom(udpfd, msg, MSG_BUFF - SOCK_LEN, 0, &cli_addr, &len);
+		char recvmsg[MSG_BUFF - SOCK_LEN];
 
-		char sockinfo[SOCK_LEN];
+		bzero(msg, sizeof(msg));
+		bzero(recvmsg, sizeof(recvmsg));
+		Recvfrom(udpfd, recvmsg, sizeof(recvmsg), 0, &cli_addr, &len);
+
 		//msg+sockinfo
-		sprintf(sockinfo, ",%u,%u", (unsigned int)cli_addr.sin_addr.s_addr,(unsigned int)cli_addr.sin_port);
+		sprintf(msg, "%s,%u,%u", recvmsg, (unsigned int)cli_addr.sin_addr.s_addr,(unsigned int)cli_addr.sin_port);
 		//strncat(msg, sockinfo, strlen(sockinfo)+1);
-		strcat(msg, sockinfo);
+		//strcat(msg, sockinfo);
 
 		Pthread_mutex_lock(&pmutex);
 		Stack_push(msg_stack, msg, strlen(msg));
@@ -112,13 +114,13 @@ static inline void handle_msg(char *msg){
 	struct sockaddr_in cliaddr;
 	bzero(&cliaddr, sizeof(cliaddr));
 
-	char sendmsg[NAME_LEN+strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
+	char sendmsg[NAME_LEN + strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
+	if(!msg_getclient(msg, client))
+		return;
 	switch(type){
 		case MSG_HELLO:
-			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-
 			bzero(sendmsg, sizeof(sendmsg));
 			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"hello\", \"name\":\"%s\"}", client->name);
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
@@ -133,7 +135,6 @@ static inline void handle_msg(char *msg){
 			build_getmsg(buffer);
 			break;
 		case MSG_BYE:
-			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
 			bzero(sendmsg, sizeof(sendmsg));
@@ -144,7 +145,6 @@ static inline void handle_msg(char *msg){
 			build_getmsg(buffer);
 			break;
 		case MSG_GET:
-			msg_getclient(msg, client);
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
 			if(buffer != NULL)

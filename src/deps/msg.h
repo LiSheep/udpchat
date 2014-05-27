@@ -13,6 +13,6 @@
 extern int msg_gettype(const char *msg);
 
 //only effective in MSG_HELLO MSG_BYE
-extern void msg_getclient(char *msg, Client cli);
+extern int msg_getclient(char *msg, Client cli);
 
 #endif

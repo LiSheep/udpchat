@@ -16,7 +16,7 @@ void client_tojson(T client, char* str, size_t len){
 	assert(client);
 	//id,name,sockadd,socklen
 	snprintf(str, len, "{\"id\":%d, \"addr\":\"%s\", \"port\":%d, \"name\":\"%s\"}", 
-			client->id, client->addr, client->port, client->name);
+			/*client->id*/ 0, client->addr, client->port, client->name);
 }
 
 void client_toobj(char *str, T cli){
