@@ -41,8 +41,8 @@ int main(void){
 		char msg[MSG_BUFF];
 		char recvmsg[MSG_BUFF - SOCK_LEN];
 
-		bzero(msg, sizeof(msg));
-		bzero(recvmsg, sizeof(recvmsg));
+		memset(msg, 0, sizeof(msg));
+		memset(recvmsg, 0, sizeof(recvmsg));
 		Recvfrom(udpfd, recvmsg, sizeof(recvmsg), 0, &cli_addr, &len);
 
 		//msg+sockinfo
@@ -62,7 +62,7 @@ static inline int init(){
 	udpfd = CreateUdpSocket();
 	struct sockaddr_in serv_addr;
 
-	bzero(&serv_addr, sizeof(serv_addr));
+	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(SERV_PORT);
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -113,16 +113,16 @@ static inline void handle_msg(char *msg){
 	int type = msg_gettype(msg);
 
 	struct sockaddr_in cliaddr;
-	bzero(&cliaddr, sizeof(cliaddr));
-
+	memset(&cliaddr, 0, sizeof(cliaddr));
 	char sendmsg[NAME_LEN + strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
+	memset(sendmsg, 0, sizeof(sendmsg));
 	if(msg_getclient(msg, client))
 		return;
 	switch(type){
 		case MSG_HELLO:
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-			bzero(sendmsg, sizeof(sendmsg));
+			memset(sendmsg, 0, sizeof(sendmsg));
 			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"hello\", \"name\":\"%s\"}", client->name);
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			//if(!hash_add(client->addr, client, sizeof (*client))) //该用户已上线
@@ -131,6 +131,7 @@ static inline void handle_msg(char *msg){
 			if(buffer)
 				free(buffer);
 
+			free(client);
 			currPeople = hash_count(hash);
 			buffer = malloc(currPeople * CLI_STR_LEN);
 			build_getmsg(buffer);
@@ -138,7 +139,7 @@ static inline void handle_msg(char *msg){
 		case MSG_BYE:
 			cliaddr.sin_addr.s_addr = client->haddr;
 			cliaddr.sin_port = client->hport;
-			bzero(sendmsg, sizeof(sendmsg));
+			memset(sendmsg, 0, sizeof(sendmsg));
 			snprintf(sendmsg, sizeof(sendmsg), "ser{\"type\":\"bye\"}");
 			Sendto(udpfd, sendmsg, strlen(sendmsg), 0, &cliaddr, sizeof(cliaddr));
 			//hash_del(client->addr);
@@ -155,7 +156,7 @@ static inline void handle_msg(char *msg){
 }
 
 static void build_getmsg(char *buffer){
-	bzero(buffer, sizeof(buffer));
+	memset(buffer, 0, sizeof(buffer));
 	char tmpbuff[CLI_STR_LEN];
 	int sprintf_long = 0;
 	int currPeople = hash_count(hash);
@@ -168,7 +169,7 @@ static void build_getmsg(char *buffer){
 	hash_begin(hash);
 	for(for_i = 0; for_i < currPeople && hash_next(hash, &outKey, (void**)&out); ++for_i){
 		//hash_list(&outKey, (void**)&out);
-		bzero(tmpbuff, sizeof(tmpbuff));
+		memset(tmpbuff, 0, sizeof(tmpbuff));
 		client_tojson(out, tmpbuff, sizeof(tmpbuff));
 		if(for_i == 0){
 			sprintf_long += sprintf(buffer + sprintf_long, "%s", tmpbuff);
