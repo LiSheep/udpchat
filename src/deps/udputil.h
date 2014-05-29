@@ -25,8 +25,8 @@
 #define TYPE_LOGOUT 2
 #define TYPE_SEND 3
 
-#define MSG_BUFF 10240
-#define SOCK_LEN 20 //存储sin_addr和sin_port
+#define MSG_BUFF 1024
+#define SOCK_LEN 30 //存储sin_addr和sin_port
 
 
 extern int CreateUdpSocket();
