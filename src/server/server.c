@@ -51,7 +51,7 @@ int main(void){
 		//strcat(msg, sockinfo);
 
 		Pthread_mutex_lock(&pmutex);
-		Stack_push(msg_stack, msg, strlen(msg));
+		Stack_push(msg_stack, msg, strlen(msg) + 1);
 		pthread_cond_signal(&pcond);
 		Pthread_mutex_unlock(&pmutex);
 	}
@@ -101,6 +101,7 @@ static void *workerthread(void *arg){
 		char *msg = Stack_pop(msg_stack);
 		Pthread_mutex_unlock(&pmutex);
 		handle_msg(msg);
+		free(msg);
 	}
 	return NULL;
 }
@@ -115,7 +116,7 @@ static inline void handle_msg(char *msg){
 	bzero(&cliaddr, sizeof(cliaddr));
 
 	char sendmsg[NAME_LEN + strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
-	if(!msg_getclient(msg, client))
+	if(msg_getclient(msg, client))
 		return;
 	switch(type){
 		case MSG_HELLO:
