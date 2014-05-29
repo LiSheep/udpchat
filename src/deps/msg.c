@@ -33,7 +33,7 @@ int msg_gettype(const char *msg){
 	return MSG_NONE;
 }
 
-//"hello ltc\n,16777343,36550" -> data,ip,port
+//"hello ltc,16777343,36550" -> data,ip,port
 //return: success 0 , false 1
 int msg_getclient(char *msg, Client cli){
 	assert(msg);
@@ -51,7 +51,6 @@ int msg_getclient(char *msg, Client cli){
 		Inet_ntop(&cli->haddr, cli->addr, ADDR_LEN);
 		cli->hport = atoi(msg + match[3].rm_so);
 		cli->port = ntohs(cli->hport);
-		puts("match hello");
 		return 0;
 	}
 	if(REG_NOMATCH != regexec(&regget, msg, 3, match, 0)){
@@ -59,7 +58,6 @@ int msg_getclient(char *msg, Client cli){
 		Inet_ntop(&cli->haddr, cli->addr, ADDR_LEN);
 		cli->hport = atoi(msg + match[2].rm_so);
 		cli->port = ntohs(cli->hport);
-		puts("match get");
 		return 0;
 	}
 	if(REG_NOMATCH != regexec(&regbye, msg, 3, match, 0)){
@@ -67,10 +65,8 @@ int msg_getclient(char *msg, Client cli){
 		Inet_ntop(&cli->haddr, cli->addr, ADDR_LEN);
 		cli->hport = atoi(msg + match[2].rm_so);
 		cli->port = ntohs(cli->hport);
-		puts("match bye");
 		return 0;
 	}
-	puts(msg);
 	return 1;
 }
 
