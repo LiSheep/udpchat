@@ -23,13 +23,9 @@ Stack_T msg_stack;
 Hash *hash;
 
 static inline int init();
-
 static inline void dispose(int signo);
-
 static void *workerthread(void *arg);
-
 static inline void handle_msg(char *msg);
-
 static inline void build_getmsg(char *msg);
 
 int udpfd = 0;
@@ -86,10 +82,10 @@ static inline int init(){
 static inline void dispose(int signo){
 	printf("server stoping...");
 	hash_dispose();
+	Pthread_cancel(worker);
 	Pthread_mutex_destroy(&pmutex);
 	Pthread_cond_destrory(&pcond);
 	exit(0);	
-
 }
 
 static void *workerthread(void *arg){

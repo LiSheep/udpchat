@@ -10,6 +10,11 @@ void Pthread_create(pthread_t *tidp, void *(*start_rtn)(void*), void *arg){
 	if(pthread_create(tidp, NULL, start_rtn, arg));
 }
 
+void Pthread_cancel(pthread_t tid){
+	if(pthread_cancel(tid) != 0)
+		QUIT("pthread cancel error");
+}
+	
 void Pthread_mutex_init(pthread_mutex_t *mutex){
 	if(pthread_mutex_init(mutex, NULL) != 0)
 		QUIT("pthread mutex init error");
