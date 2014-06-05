@@ -22,4 +22,4 @@ client-python(cross-platform):
 
 #TODO
 
-Futher more, I want to implenet p2p in Internet. And server only carry on the task of storaging and sending user info.
+Further, I want to implenet p2p in Internet. And server only carry on the task of storaging and sending user info.
