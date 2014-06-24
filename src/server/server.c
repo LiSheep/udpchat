@@ -68,6 +68,7 @@ static inline int init(){
 
 	//hash_init();
 	hash = hash_create();
+	msg_init();
 	msg_stack = Stack_new();
 
 	signal(SIGINT, dispose);
@@ -81,14 +82,17 @@ static inline int init(){
 
 static inline void dispose(int signo){
 	printf("server stoping...");
+	msg_dispose();
 	hash_dispose();
-	Pthread_cancel(worker);
-	Pthread_mutex_destroy(&pmutex);
-	Pthread_cond_destrory(&pcond);
+
+	Stack_free(&msg_stack);
+	//Pthread_mutex_destroy(&pmutex);
+	//Pthread_cond_destrory(&pcond);
 	exit(0);	
 }
 
 static void *workerthread(void *arg){
+	Pthread_detach(pthread_self());
 	while(1){
 		Pthread_mutex_lock(&pmutex);
 		while(Stack_empty(msg_stack)){
@@ -104,7 +108,7 @@ static void *workerthread(void *arg){
 
 static char *buffer = NULL;	//发送报文buffer
 static inline void handle_msg(char *msg){
-	Client client = malloc(sizeof (*client));
+	Client client = calloc(1, sizeof(struct Client));
 	int currPeople;		//当前在线人数
 	int type = msg_gettype(msg);
 
@@ -112,8 +116,10 @@ static inline void handle_msg(char *msg){
 	memset(&cliaddr, 0, sizeof(cliaddr));
 	char sendmsg[NAME_LEN + strlen("ser{\"type\":\"hello\", \"name\":\"\"}")]; 	//ser{type="hello", name="name"}
 	memset(sendmsg, 0, sizeof(sendmsg));
-	if(msg_getclient(msg, client))
+	if(msg_getclient(msg, client)){
+		free(client);
 		return;
+	}
 	switch(type){
 		case MSG_HELLO:
 			cliaddr.sin_addr.s_addr = client->haddr;
@@ -127,7 +133,6 @@ static inline void handle_msg(char *msg){
 			if(buffer)
 				free(buffer);
 
-			free(client);
 			currPeople = hash_count(hash);
 			buffer = malloc(currPeople * CLI_STR_LEN);
 			build_getmsg(buffer);
@@ -149,6 +154,7 @@ static inline void handle_msg(char *msg){
 				Sendto(udpfd, buffer, strlen(buffer), 0, &cliaddr, sizeof(cliaddr));
 			break;
 	}
+	free(client);
 }
 
 static void build_getmsg(char *buffer){

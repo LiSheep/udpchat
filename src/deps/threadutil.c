@@ -1,13 +1,21 @@
 #include "threadutil.h"
 
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "merror.h"
 
 
 void Pthread_create(pthread_t *tidp, void *(*start_rtn)(void*), void *arg){
-	if(pthread_create(tidp, NULL, start_rtn, arg));
+	if(pthread_create(tidp, NULL, start_rtn, arg) != 0)
+		QUIT("pthread create error");
+}
+
+void Pthread_detach(pthread_t tid){
+	if(pthread_detach(tid) != 0)
+		QUIT("pthread detach error");
 }
 
 void Pthread_cancel(pthread_t tid){
@@ -21,8 +29,11 @@ void Pthread_mutex_init(pthread_mutex_t *mutex){
 }
 
 void Pthread_mutex_destroy(pthread_mutex_t *mutex){
-	if(pthread_mutex_destroy(mutex) != 0)
+	int i = 0;
+	if((i = pthread_mutex_destroy(mutex)) != 0){
+		errno = i;
 		QUIT("pthread mutex destory error");
+	}
 }
 
 void Pthread_mutex_lock(pthread_mutex_t *mutex){

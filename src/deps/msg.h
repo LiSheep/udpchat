@@ -11,6 +11,8 @@
 #define MSG_BYE		1<<2
 
 extern int msg_gettype(const char *msg);
+extern void msg_init();
+extern void msg_dispose();
 
 //only effective in MSG_HELLO MSG_BYE
 extern int msg_getclient(char *msg, Client cli);

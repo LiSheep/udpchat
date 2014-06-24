@@ -14,7 +14,6 @@ static regex_t reghello;
 static regex_t regbye;
 static regex_t regget;
 static int regflags = REG_EXTENDED;
-static int isinit = 0;
 
 static char *helloP = "^hello (.+),([0-9]+),([0-9]+)$";
 static char *byeP = "^bye ,([0-9]+),([0-9]+)";
@@ -33,16 +32,23 @@ int msg_gettype(const char *msg){
 	return MSG_NONE;
 }
 
+void msg_init(){
+	regcomp(&reghello, helloP, regflags);
+	regcomp(&regbye, byeP, regflags); 
+	regcomp(&regget, getP, regflags);
+}
+
+void msg_dispose(){
+	regfree(&reghello);
+	regfree(&regbye);
+	regfree(&regget);
+}
+
 //"hello ltc,16777343,36550" -> data,ip,port
 //return: success 0 , false 1
 int msg_getclient(char *msg, Client cli){
 	assert(msg);
 	assert(cli);
-	if(!isinit){
-		regcomp(&reghello, helloP, regflags);
-		regcomp(&regbye, byeP, regflags);
-		regcomp(&regget, getP, regflags);
-	}
 	regmatch_t match[4];
 	if(REG_NOMATCH != regexec(&reghello, msg, 4, match, 0)){
 		int namelen = match[1].rm_eo - match[1].rm_so;
